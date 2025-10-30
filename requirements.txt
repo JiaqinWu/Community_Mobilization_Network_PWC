@@ -1,8 +1,8 @@
-pip>=23.2
+pip>=24.2
 setuptools>=68
 wheel>=0.41
-numpy==1.26.4
-pandas==2.1.4
+numpy==2.3.4
+pandas==2.2.3
 Flask==3.0.0
 folium==0.14.0
 gunicorn==21.2.0
