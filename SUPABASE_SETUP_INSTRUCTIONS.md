@@ -2,14 +2,22 @@
 
 Your app now has Supabase integration! Follow these 3 steps to enable persistent storage:
 
-## Step 1: Create the Supabase Table
+## Step 1: Create the Supabase Table ⚠️ **REQUIRED**
+
+**If you got error 42703 (column doesn't exist):**
+Use `supabase_setup_fix.sql` instead - it will recreate the table cleanly.
+
+**Otherwise, use:** `supabase_setup.sql`
 
 1. Go to https://app.supabase.com
-2. Select your project
-3. Click **SQL Editor** → **New query**
-4. Copy and paste ALL content from `supabase_setup.sql`
-5. Click **Run** (Cmd+Enter or Ctrl+Enter)
-6. You should see "Success. No rows returned" ✅
+2. Select your project (`xkokabzojvuuwnntbxxs`)
+3. Click **SQL Editor** in the left sidebar
+4. Click **New query** button
+5. Copy and paste **ALL** content from the appropriate `.sql` file
+6. Click **Run** button (or press Cmd+Enter / Ctrl+Enter)
+7. You should see: **"Success. No rows returned"** ✅
+
+**IMPORTANT:** If you don't do this step, you'll get error 400!
 
 ## Step 2: Add Environment Variables to Render
 
