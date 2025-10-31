@@ -5,15 +5,46 @@ import json
 import pandas as pd
 from datetime import datetime
 import os
+import requests
 
 app = Flask(__name__)
 
 df = pd.read_csv('Final_df.csv')
 
 # Simple persistent overlay store for status and notes
-STATE_FILE = 'state.json'
+STATE_FILE = os.environ.get('STATE_FILE_PATH', 'state.json')
+
+# Supabase REST API configuration (optional)
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+SUPABASE_TABLE = os.environ.get('SUPABASE_TABLE', 'organization_overlays')
+USE_SUPABASE = bool(SUPABASE_URL and SUPABASE_KEY)
 
 def load_state():
+    """Load state from Supabase REST API or local file."""
+    # Try Supabase first if configured
+    if USE_SUPABASE:
+        try:
+            # Fetch the state record (we store it as a single JSON object)
+            url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}?id=eq.1"
+            headers = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            }
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data and len(data) > 0:
+                    state_json = data[0].get('state_data')
+                    if state_json:
+                        return json.loads(state_json) if isinstance(state_json, str) else state_json
+        except Exception as e:
+            print(f"Supabase load error: {e}")
+            # Fall through to local file
+    
+    # Fallback to local file
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE, 'r') as f:
@@ -23,11 +54,46 @@ def load_state():
     return {}
 
 def save_state(state):
+    """Save state to Supabase REST API or local file."""
+    state_json_str = json.dumps(state, ensure_ascii=False, indent=2)
+    
+    # Try Supabase first if configured
+    if USE_SUPABASE:
+        try:
+            url = f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}"
+            headers = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            }
+            # Use PATCH for update (record with id=1 should always exist after SQL setup)
+            patch_url = f"{url}?id=eq.1"
+            payload = {
+                'state_data': state_json_str,
+                'updated_at': datetime.utcnow().isoformat() + 'Z'
+            }
+            resp = requests.patch(patch_url, headers=headers, json=payload, timeout=10)
+            if 200 <= resp.status_code < 300:
+                print(f"Successfully saved to Supabase (status {resp.status_code})")
+                return
+            else:
+                print(f"Supabase PATCH failed with status {resp.status_code}: {resp.text}")
+        except Exception as e:
+            print(f"Supabase save error: {e}")
+            # Fall through to local file
+    
+    # Fallback to local file
     try:
+        # Ensure parent directory exists if a path was provided
+        state_dir = os.path.dirname(STATE_FILE)
+        if state_dir:
+            os.makedirs(state_dir, exist_ok=True)
         with open(STATE_FILE, 'w') as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+            f.write(state_json_str)
+        print(f"Saved to local file: {STATE_FILE}")
+    except Exception as e:
+        print(f"Local save error: {e}")
 
 # Convert to list of dictionaries
 organizations = df.to_dict(orient='records')
