@@ -23,6 +23,13 @@
                     <h3><i class="fas fa-filter"></i> Filters</h3>
                     
                     <div class="filter-group" style="margin-bottom:20px;">
+                        <label style="display:block; font-weight:600; margin-bottom:8px;">Search Organizations</label>
+                        <input type="text" id="search-input" placeholder="Search by name, address, county..." 
+                               style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-family:'Times New Roman', Times, serif;"
+                               oninput="applySearch(this.value)">
+                    </div>
+                    
+                    <div class="filter-group" style="margin-bottom:20px;">
                         <label style="display:block; font-weight:600; margin-bottom:8px;">Status Filter</label>
                         <select id="status-filter" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" onchange="applyStatusFilter(this.value)">
                             <option value="">All Statuses</option>

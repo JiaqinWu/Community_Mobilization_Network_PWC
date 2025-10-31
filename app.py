@@ -245,6 +245,8 @@ def get_map():
         selected_counties = set([c.strip() for c in counties_param.split(',') if c.strip()])
     # Optional status filter
     status_param = request.args.get('status')
+    # Optional search query
+    search_query = request.args.get('search', '').strip().lower()
     def normalize_status(s):
         if s is None:
             return 'pending'
@@ -267,6 +269,17 @@ def get_map():
     # Apply status filter if provided
     if normalized_status is not None:
         orgs_with_location = [org for org in orgs_with_location if normalize_status(org.get('status')) == normalized_status]
+    # Apply search filter if provided
+    if search_query:
+        def matches_search(org):
+            name = (org.get('ORGANIZATION') or '').lower()
+            address = (org.get('ADDRESS') or '').lower()
+            county = (org.get('county') or '').lower()
+            phone = (org.get('PHONE') or '').lower()
+            email = (org.get('EMAIL') or '').lower()
+            return (search_query in name or search_query in address or 
+                    search_query in county or search_query in phone or search_query in email)
+        orgs_with_location = [org for org in orgs_with_location if matches_search(org)]
     
     if not orgs_with_location:
         # Create a default map centered on NYC

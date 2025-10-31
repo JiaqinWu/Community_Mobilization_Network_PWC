@@ -5,6 +5,7 @@ let selectedCounties = new Set();
 let currentMap = null;
 let activeFilter = null;
 let selectedStatus = null; // 'pending' | 'in-progress' | 'done' | null
+let searchQuery = ''; // Search text
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -151,6 +152,12 @@ function applyStatusFilter(status) {
     applyFilters();
 }
 
+// Apply search filter
+function applySearch(query) {
+    searchQuery = (query || '').trim().toLowerCase();
+    applyFilters();
+}
+
 // Apply filters to map
 function applyFilters() {
     loadMap();
@@ -164,6 +171,7 @@ async function loadMap() {
     const params = new URLSearchParams();
     if (selectedCounties.size > 0) params.set('counties', [...selectedCounties].map(c => (c || '').trim()).join(','));
         if (selectedStatus) params.set('status', selectedStatus);
+        if (searchQuery) params.set('search', searchQuery);
         const qs = params.toString();
         const response = await fetch(`/api/map${qs ? ('?' + qs) : ''}`);
         const mapHtml = await response.text();
@@ -250,6 +258,22 @@ function renderOrganizationsWithoutLocation() {
     let list = organizationsWithoutLocation;
     if (selectedStatus) {
         list = list.filter(o => normalizeStatus(o.status) === selectedStatus);
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+        list = list.filter(org => {
+            const name = (org.ORGANIZATION || '').toLowerCase();
+            const address = (org.ADDRESS || '').toLowerCase();
+            const county = (org.county || '').toLowerCase();
+            const phone = (org.PHONE || '').toLowerCase();
+            const email = (org.EMAIL || '').toLowerCase();
+            return name.includes(searchQuery) || 
+                   address.includes(searchQuery) || 
+                   county.includes(searchQuery) ||
+                   phone.includes(searchQuery) ||
+                   email.includes(searchQuery);
+        });
     }
     
     // Sort: Pending first, then others
